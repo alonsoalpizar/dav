@@ -115,37 +115,43 @@ Owner:    divuser
 
 ### Bases de Datos
 
-| Database | Owner | Encoding | Schemas |
-|----------|-------|----------|---------|
-| **divdb** | divuser | UTF8 | public |
-| postgres | postgres | UTF8 | - |
-| template0 | postgres | UTF8 | - |
-| template1 | postgres | UTF8 | - |
+| Database | Owner | Encoding | Uso |
+|----------|-------|----------|-----|
+| **divdb** | divuser | UTF8 | ⚠️ DIV System (NO TOCAR) |
+| **dav** | postgres | UTF8 | ✅ DAV Project |
+| postgres | postgres | UTF8 | Sistema |
+| template0 | postgres | UTF8 | Template |
+| template1 | postgres | UTF8 | Template |
 
 ### Usuarios
 
-| User | Attributes |
-|------|------------|
-| **postgres** | Superuser, Create role, Create DB |
-| **divuser** | Create DB |
+| User | Attributes | Database |
+|------|------------|----------|
+| **postgres** | Superuser, Create role, Create DB | Todas |
+| **divuser** | Create DB | divdb |
+| **dav_user** | - | dav |
 
-### Schema para DAV
+### Base de Datos DAV
 
-**A crear**: `dav_schema` en base de datos `divdb`
+**✅ Ya creada**: Base de datos `dav` dedicada
 
 ```sql
--- Ejecutar para crear schema DAV
-sudo -u postgres psql -d divdb << EOF
-CREATE SCHEMA IF NOT EXISTS dav_schema;
-CREATE USER dav_user WITH PASSWORD 'password_seguro_aqui';
-GRANT ALL PRIVILEGES ON SCHEMA dav_schema TO dav_user;
-GRANT ALL ON ALL TABLES IN SCHEMA dav_schema TO dav_user;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA dav_schema TO dav_user;
-ALTER USER dav_user SET search_path TO dav_schema, public;
+-- Verificar
+sudo -u postgres psql -l | grep dav
+
+-- Conectar
+psql -U dav_user -d dav -h localhost
+
+-- Cambiar password de dav_user
+sudo -u postgres psql << EOF
+ALTER USER dav_user WITH PASSWORD 'tu_password_seguro_aqui';
 EOF
 ```
 
-**Alternativa**: Usar `divuser` existente y crear schema `dav_schema`.
+**Importante**:
+- DAV usa su propia base de datos: `dav`
+- Schema: `public` (default)
+- **NO tocar**: `divdb` (es del sistema DIV principal)
 
 ---
 
@@ -205,28 +211,23 @@ npm install
 
 ## 🚀 Comandos de Setup
 
-### 1. Crear Schema y Usuario de Base de Datos
+### 1. Base de Datos DAV
+
+**✅ Ya creada** - Base de datos `dav` con usuario `dav_user`
+
+**Solo cambiar password**:
 
 ```bash
-sudo -u postgres psql -d divdb << 'EOF'
--- Crear schema
-CREATE SCHEMA IF NOT EXISTS dav_schema;
-
--- Crear usuario (opcional, puedes usar divuser)
-CREATE USER dav_user WITH PASSWORD 'Tu_Password_Seguro_123!';
-
--- Permisos
-GRANT ALL PRIVILEGES ON SCHEMA dav_schema TO dav_user;
-GRANT ALL ON ALL TABLES IN SCHEMA dav_schema TO dav_user;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA dav_schema TO dav_user;
-
--- Search path
-ALTER USER dav_user SET search_path TO dav_schema, public;
-
--- Verificar
-\dn
-\du
+sudo -u postgres psql << EOF
+ALTER USER dav_user WITH PASSWORD 'Tu_Password_Seguro_Aqui_123!';
 EOF
+```
+
+**Verificar conexión**:
+
+```bash
+psql -U dav_user -d dav -h localhost -c "\dt"
+# Password: dav_temp_password_123 (cambiar después)
 ```
 
 ### 2. Configurar Variables de Entorno Backend
@@ -241,9 +242,9 @@ JWT_SECRET=$(openssl rand -base64 32)
 # Editar .env
 nano .env
 # Actualizar:
-# - DB_NAME=divdb
-# - DB_USER=dav_user (o divuser)
-# - DB_PASSWORD=tu_password
+# - DB_NAME=dav (✅ ya está correcto)
+# - DB_USER=dav_user (✅ ya está correcto)
+# - DB_PASSWORD=tu_password_seguro
 # - JWT_SECRET=$JWT_SECRET
 ```
 
@@ -326,8 +327,8 @@ sudo -u postgres psql -d divdb -c "SELECT schemaname, tablename FROM pg_tables W
 - [x] PostgreSQL instalado (v18.0)
 - [x] NGINX instalado (v1.24.0)
 - [x] Puerto 8080 disponible
-- [ ] Schema `dav_schema` creado
-- [ ] Usuario `dav_user` creado
+- [x] Base de datos `dav` creada
+- [x] Usuario `dav_user` creado
 - [ ] Variables .env configuradas
 - [ ] Dependencias Go instaladas
 - [ ] Dependencias npm instaladas
